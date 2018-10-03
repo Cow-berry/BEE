@@ -1,6 +1,5 @@
 import sys, os
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout,
-    QLabel, QApplication)
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QLabel, QApplication)
 from PyQt5.QtGui import QPixmap
 from PyQt5 import QtCore
 
