@@ -23,9 +23,8 @@ b = [b1, b2, b3]  # массив весов смещения
 x = [0.19438, 6]
 
 # сигмоидальная функция
-def f(x):
-    # return 1 / (1 + np.exp(-x))
-    return x
+def norm(x):
+    return np.sin(x)
 
 
 def feed_forward_calc(n_layers, x, w, b):  # (кол-во слоёв, входной веткор, массив весов, массив весов смещений)
@@ -34,16 +33,21 @@ def feed_forward_calc(n_layers, x, w, b):  # (кол-во слоёв, входн
     for l in range(n_layers-1):
         node_in = h
         z = w[l].dot(node_in) + b[l]
-        h = f(z)
+        h = norm(z)
     return h
-
-if __name__ == '__main__':
-    print(feed_forward_calc(4, x, w, b))
 
 
 def calc(x, w, b):
     return feed_forward_calc(4, x, w, b)
-#
-# for i in range(10):
-#     x = feed_forward_calc(4, x, w, b)
-#     print(x)
+
+
+def reproduce(w1, w2, b1, b2, r):
+    w = (w1 + w2)/2
+    b = (b1 + b2)/2
+    mutations_w = [[random.uniform(-1, 1)*r for i in range(w.shape[1])] for j in range(w.shape[0])]
+    mutations_b = [random.uniform(-1, 1)*r for i in range(b.shape[0])]
+    return (w+mutations_w, b+mutations_b)
+
+
+if __name__ == '__main__':
+    print(reproduce(w1, w1, b1, b1, 0.1))
