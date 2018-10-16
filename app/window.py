@@ -3,7 +3,7 @@ from PyQt5.Qt import QColor
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, qApp
 from PyQt5 import QtGui
 from PyQt5.QtGui import QPainter, QBrush, QPen
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer,  QRectF, QRect
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem, QGraphicsLineItem, QStyleOptionGraphicsItem
 import random as rn
 import numpy as np
@@ -27,7 +27,7 @@ class Main(QMainWindow):
 
         self.res_x = 400
         self.res_y = 300
-        self.resource = Resource(self.res_x, self.res_y, 20)
+        self.resource = Resource(self.res_x, self.res_y)
         self.All_Cells = []
 
         self.evolution()
@@ -38,18 +38,18 @@ class Main(QMainWindow):
 
         # инициализация первого поколения
         start_distance = 200
-        amount = 6
+        amount = 15
         self.All_Cells = [Cell(np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y, 10) for i in range(amount)]
         self.change()
 
     def paintEvent(self, event):
         qp = QPainter(self)
         qp.setRenderHint(QPainter.Antialiasing, True)
-        qp.setPen(QPen(Qt.black, 2, Qt.SolidLine))
-        # self.drawResource(qp)
+        qp.setPen(QColor(Qt.red))
+        qp.setBrush(QColor(Qt.blue))
         self.drawResource(qp)
         for cell in self.All_Cells:
-            # self.drawCell(qp, cell)
+            cell.paint(qp, QStyleOptionGraphicsItem())
             pass
 
     # def drawCell(self, qp, cell):
@@ -61,8 +61,8 @@ class Main(QMainWindow):
     #     qp.drawEllipse(*self.resource.getResourceCoords())
 
     def drawResource(self, qp):
-        qp.setBrush(QBrush(Qt.green, Qt.SolidPattern))
-        qp.setPen(QPen(Qt.black, 2, Qt.SolidLine))
+        # qp.setPen(QPen(Qt.black, 2, Qt.SolidLine))
+        # qp.setBrush(QBrush())
         self.resource.paint(qp, QStyleOptionGraphicsItem())
 
     def change(self):
@@ -86,6 +86,7 @@ class Cell(QGraphicsEllipseItem):
         self.y = y
         self.r = r
         self.color = Qt.blue
+        self.setBrush(QColor(self.color))
     def set_scales(w, b):
         self.w = w
         self.b = b
@@ -99,12 +100,13 @@ class Cell(QGraphicsEllipseItem):
 
 
 class Resource(QGraphicsEllipseItem):
-    def __init__(self, x, y, r=10):
-        super().__init__(x, y, r, r)
+    def __init__(self, x, y, r=20):
+        super().__init__(x, y, r, r )
         self.x = x
         self.y = y
         self.r = r
-        self.color = Qt.green
+        self.setBrush(QColor(Qt.green))
+        # self.color = Qt.green
 
     def getResourceCoords(self):
         return [self.x - self.r / 2, self.y - self.r / 2, self.r, self.r]
