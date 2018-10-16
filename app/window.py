@@ -47,27 +47,15 @@ class Main(QMainWindow):
         qp.setRenderHint(QPainter.Antialiasing, True)
         qp.setPen(QColor(Qt.red))
         qp.setBrush(QColor(Qt.blue))
-        self.drawResource(qp)
+        self.resource.paint(qp, QStyleOptionGraphicsItem())
         for cell in self.All_Cells:
             cell.paint(qp, QStyleOptionGraphicsItem())
             pass
 
-    # def drawCell(self, qp, cell):
-    #     qp.setBrush(QBrush(cell.color, Qt.SolidPattern))
-    #     qp.drawEllipse(*cell.getEllipseCoords())
-
-    # def drawResource(self, qp):
-    #     qp.setBrush(QBrush(self.resource.color, Qt.SolidPattern))
-    #     qp.drawEllipse(*self.resource.getResourceCoords())
-
-    def drawResource(self, qp):
-        # qp.setPen(QPen(Qt.black, 2, Qt.SolidLine))
-        # qp.setBrush(QBrush())
-        self.resource.paint(qp, QStyleOptionGraphicsItem())
-
     def change(self):
         self.update()
         self.show()
+
 
 class Cell(QGraphicsEllipseItem):
     def __init__(self, x, y, r, w = None, b = None):
@@ -87,13 +75,14 @@ class Cell(QGraphicsEllipseItem):
         self.r = r
         self.color = Qt.blue
         self.setBrush(QColor(self.color))
+
     def set_scales(w, b):
         self.w = w
         self.b = b
-    def getEllipseCoords(self):
-        return [self.x - self.r / 2, self.y - self.r / 2, self.r, self.r]
+
     def get_step(self, basic_data): # basic_data -- [x, y, orient, ... (health, stamina) ]
-        return None
+        pass #проверять для каждого существа ксловие, что оно  в поле видимости и на одной из прямых видимости. далее передавать это всё нейронке, пусть решает, шо с этим делать.
+
     def move(x, y):
         self.x += x
         self.y += y
@@ -110,7 +99,6 @@ class Resource(QGraphicsEllipseItem):
 
     def getResourceCoords(self):
         return [self.x - self.r / 2, self.y - self.r / 2, self.r, self.r]
-
 
 
 if __name__ == '__main__':
