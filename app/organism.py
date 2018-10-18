@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from constants import layers_count
 
 # сигмоидальная функция
 def norm(x):
@@ -16,7 +17,7 @@ def feed_forward_calc(n_layers, x, w, b):  # (кол-во слоёв, входн
 
 
 def calc(x, w, b):
-    return feed_forward_calc(4, x, w, b)
+    return feed_forward_calc(layers_count, x, w, b)
 
 def reproduce(w1, w2, b1, b2, r):
     w = (w1 + w2)/2
@@ -27,4 +28,4 @@ def reproduce(w1, w2, b1, b2, r):
 
 
 if __name__ == '__main__':
-    print(reproduce(w1, w1, b1, b1, 0.1))
+    pass

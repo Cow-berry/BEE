@@ -8,8 +8,9 @@ from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem, QGraphicsLineIt
 import random as rn
 import numpy as np
 
-import organism
+import organism as org
 from constants import *
+
 
 class Main(QMainWindow):
     def __init__(self):
@@ -28,8 +29,10 @@ class Main(QMainWindow):
         self.res_x = 400
         self.res_y = 300
         self.resource = Resource(self.res_x, self.res_y)
-        self.All_Cells = []
-
+        global All_Cells, All_Resources, All_Entities
+        All_Cells = []
+        All_Resources = [self.resource]
+        All_Entities = All_Cells + All_Resources
         self.evolution()
 
     def evolution(self):
@@ -39,8 +42,16 @@ class Main(QMainWindow):
         # инициализация первого поколения
         start_distance = 200
         amount = 15
-        self.All_Cells = [Cell(np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y, 10) for i in range(amount)]
+        All_Cells = [Cell(np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y, 10) for i in range(amount)]
         self.change()
+
+        for i in range(1):
+            for cell in All_Cells:
+                x, y, orient = cell.get_step()
+                cell.move(x,y)
+                cell.orient = orient
+            self.change(0)
+
 
     def paintEvent(self, event):
         qp = QPainter(self)
@@ -48,7 +59,7 @@ class Main(QMainWindow):
         qp.setPen(QColor(Qt.red))
         qp.setBrush(QColor(Qt.blue))
         self.resource.paint(qp, QStyleOptionGraphicsItem())
-        for cell in self.All_Cells:
+        for cell in All_Cells:
             cell.paint(qp, QStyleOptionGraphicsItem())
             pass
 
@@ -58,7 +69,7 @@ class Main(QMainWindow):
 
 
 class Cell(QGraphicsEllipseItem):
-    def __init__(self, x, y, r, w = None, b = None):
+    def __init__(self, x, y, r, w = None, b = None, orient = 0):
         super().__init__(x, y, r, r)
         if w is None:
             w = []
@@ -73,15 +84,49 @@ class Cell(QGraphicsEllipseItem):
         self.x = x
         self.y = y
         self.r = r
+        self.orient = orient
+
         self.color = Qt.blue
         self.setBrush(QColor(self.color))
+
+        self.vision_rays = [2*np.pi*(i+orient)/raze_amount for i in range(sector_size)]
+        self.ray_length = 20 # длина луча видимости
+        self.density = 0.5 # плотность просматриваемых точек на луче
 
     def set_scales(w, b):
         self.w = w
         self.b = b
 
-    def get_step(self, basic_data): # basic_data -- [x, y, orient, ... (health, stamina) ]
-        pass #проверять для каждого существа ксловие, что оно  в поле видимости и на одной из прямых видимости. далее передавать это всё нейронке, пусть решает, шо с этим делать.
+    def get_step(self):
+        x = self.x
+        y = self.y
+        Cells_Close = [cell for cell in All_Cells if (x - cell.x)**2 + (y - cell.y)**2 <= self.ray_length**2] # клетки в радиусе видимости
+        Resource_Close = [resource for resource in All_Resources if (x - resource.x)**2 + (y - resource.y)**2 <= self.ray_length**2] # еда в радиусе видимости
+        Entities_Close = Cells_Close + Resource_Close
+        input_data = []
+        for angle in self.vision_rays:
+            for i in range(int(self.ray_length//self.density)):
+                i_x = np.cos(angle)*i/self.ray_length
+                i_y = np.sin(angle)*i/self.ray_length
+                for entity in Entities_Close:
+                    if (i_x - cell.x)**2 + (i_y - cell.y)**2 <= cell.r**2:
+                        input_data.append((i_x**2 + i_y**2)**0.5)
+                        # TODO 'Завести матрицу отношений'
+                        if isinstance(entity, Cell):
+                            input_data.append(0)
+                        elif isinstance(entity, Resource):
+                            input_data.append(1)
+                        else:
+                            input_data.append(-1)
+                        # Для прочих подклассов Cell (особей другого вида) будет делаться проверка типа и передаваться другое число, наверное
+                        # TODO переработать структуру классов, определить отношения между видами особей и обобщить код на случай множества разных особей
+
+                    else:
+                        input_data.append(-1)
+                        input_data.append(0)
+        return org.calc(input_data, self.w, self.b)
+
+
 
     def move(x, y):
         self.x += x
