@@ -48,9 +48,9 @@ class Main(QMainWindow):
         for i in range(1):
             for cell in All_Cells:
                 x, y, orient = cell.get_step()
-                cell.move(x,y)
+                cell.move(x, y)
                 cell.orient = orient
-            self.change(0)
+            self.change()
 
 
     def paintEvent(self, event):
@@ -74,12 +74,12 @@ class Cell(QGraphicsEllipseItem):
         if w is None:
             w = []
             for i in range(layers_count-1):
-                w.append(np.array([[rn.uniform(-1,1) for i in range(neuron_layers[i])] for i in range(neuron_layers[i+1])]))
+                w.append(np.array([[rn.uniform(-1, 1) for k in range(neuron_layers[i])] for j in range(neuron_layers[i+1])]))
         self.w = w
         if b is None:
             b = []
             for i in range(layers_count-1):
-                b.append(np.array([rn.uniform(-1,1) for i in range(neuron_layers[i])]))
+                b.append(np.array([rn.uniform(-1, 1) for k in range(neuron_layers[i+1])]))
         self.b = b
         self.x = x
         self.y = y
@@ -105,12 +105,14 @@ class Cell(QGraphicsEllipseItem):
         Entities_Close = Cells_Close + Resource_Close
         input_data = []
         for angle in self.vision_rays:
+            seeing = False
             for i in range(int(self.ray_length//self.density)):
                 i_x = np.cos(angle)*i/self.ray_length
                 i_y = np.sin(angle)*i/self.ray_length
                 for entity in Entities_Close:
                     if (i_x - cell.x)**2 + (i_y - cell.y)**2 <= cell.r**2:
                         input_data.append((i_x**2 + i_y**2)**0.5)
+                        seeing = True
                         # TODO 'Завести матрицу отношений'
                         if isinstance(entity, Cell):
                             input_data.append(0)
@@ -121,14 +123,12 @@ class Cell(QGraphicsEllipseItem):
                         # Для прочих подклассов Cell (особей другого вида) будет делаться проверка типа и передаваться другое число, наверное
                         # TODO переработать структуру классов, определить отношения между видами особей и обобщить код на случай множества разных особей
 
-                    else:
-                        input_data.append(-1)
-                        input_data.append(0)
+            if not seeing:
+                input_data.append(-1)
+                input_data.append(0)
         return org.calc(input_data, self.w, self.b)
 
-
-
-    def move(x, y):
+    def move(self, x, y):
         self.x += x
         self.y += y
 

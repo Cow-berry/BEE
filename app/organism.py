@@ -28,4 +28,21 @@ def reproduce(w1, w2, b1, b2, r):
 
 
 if __name__ == '__main__':
-    pass
+    # матрица весов первого слоя
+    w1 = np.array([[random.uniform(-1, 1) for i in range(9)] for j in range(4)])
+
+    # веса второго слоя
+    w2 = np.array([[random.uniform(-1, 1) for i in range(4)] for j in range(4)])
+
+    w3 = np.array([[random.uniform(-1, 1) for i in range(4)] for j in range(2)])
+    # веса смещения первого и второго слоев
+    b1 = np.array([random.uniform(-1, 1) for i in range(4)])
+    b2 = np.array([random.uniform(-1, 1) for i in range(4)])
+    b3 = np.array([random.uniform(-1, 1) for i in range(2)])
+
+    w = [w1, w2, w3]  # массив матриц весов
+    b = [b1, b2, b3]  # массив весов смещения
+
+    # Произвольный входной вектор x
+    x = [0.19438, 6, 1, 1, 1, 1, 1, 8, ]
+    print(calc(x,w,b))
