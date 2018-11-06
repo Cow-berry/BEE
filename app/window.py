@@ -3,10 +3,11 @@ from PyQt5.Qt import QColor
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, qApp
 from PyQt5 import QtGui
 from PyQt5.QtGui import QPainter, QBrush, QPen
-from PyQt5.QtCore import Qt, QTimer,  QRectF, QRect
+from PyQt5.QtCore import Qt, QTimer,  QRectF, QRect, QEventLoop
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem, QGraphicsLineItem, QStyleOptionGraphicsItem
 import random as rn
 import numpy as np
+import time
 
 import organism as org
 from constants import *
@@ -34,8 +35,11 @@ class Main(QMainWindow):
         All_Resources = [self.resource]
         All_Entities = All_Cells + All_Resources
         self.evolution()
+        self.change()
 
     def evolution(self):
+        global All_Cells
+
         def fitness_func(x, y): # расстояние до капустки
             return ((x-self.res_x)**2+(y-self.res_y)**2)**(0.5)
 
@@ -45,21 +49,27 @@ class Main(QMainWindow):
         All_Cells = [Cell(np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y, 10) for i in range(amount)]
         self.change()
 
-        for i in range(1):
-            for cell in All_Cells:
-                x, y, orient = cell.get_step()
-                cell.move(x, y)
-                cell.orient = orient
-            self.change()
+    def evolution_step(self):
+        global All_Cells
+        for cell in All_Cells:
+            x, y, orient = cell.get_step()
+            cell.move(x, y)
+            cell.orient = orient
+        self.change()
 
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Space:
+            self.evolution_step()
 
     def paintEvent(self, event):
+        global All_Cells
         qp = QPainter(self)
         qp.setRenderHint(QPainter.Antialiasing, True)
         qp.setPen(QColor(Qt.red))
         qp.setBrush(QColor(Qt.blue))
         self.resource.paint(qp, QStyleOptionGraphicsItem())
         for cell in All_Cells:
+            qp.setBrush(QColor(Qt.blue))
             cell.paint(qp, QStyleOptionGraphicsItem())
             pass
 
@@ -110,8 +120,9 @@ class Cell(QGraphicsEllipseItem):
                 i_x = np.cos(angle)*i/self.ray_length
                 i_y = np.sin(angle)*i/self.ray_length
                 for entity in Entities_Close:
-                    if (i_x - cell.x)**2 + (i_y - cell.y)**2 <= cell.r**2:
-                        input_data.append((i_x**2 + i_y**2)**0.5)
+                    if (i_x - entity.x)**2 + (i_y - entity.y)**2 <= entity.r**2:
+                        # input_data.append((i_x**2 + i_y**2)**0.5)
+                        input_data.append(1)
                         seeing = True
                         # TODO 'Завести матрицу отношений'
                         if isinstance(entity, Cell):
@@ -131,6 +142,7 @@ class Cell(QGraphicsEllipseItem):
     def move(self, x, y):
         self.x += x
         self.y += y
+        super().__init__(self.x, self.y, self.r, self.r)
 
 
 class Resource(QGraphicsEllipseItem):

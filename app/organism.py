@@ -4,7 +4,7 @@ from constants import layers_count
 
 # сигмоидальная функция
 def norm(x):
-    return np.sin(x)
+    return 100*np.sin(x)
 
 def feed_forward_calc(n_layers, x, w, b):  # (кол-во слоёв, входной веткор, массив весов, массив весов смещений)
     node_in = x
