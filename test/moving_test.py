@@ -29,19 +29,19 @@ class Main(QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
-        self.list = [QGraphicsEllipseItem(250, 250, 100, 100)]
+        self.list = [Circle(250, 250, 100, 100)]
         self.change()
 
     def paintEvent(self, event):
         qp = QPainter(self)
         qp.setRenderHint(QPainter.Antialiasing, True)
-        qp.setPen(QColor(Qt.red))
-        qp.setBrush(QColor(Qt.blue))
+        qp.setPen(QtGui.QPen(QtGui.QColor(0,0,0)))
+        qp.setBrush(QtGui.QBrush(QtGui.QColor(0,255,0)))
         for l in self.list:
-            l.paint(qp, QStyleOptionGraphicsItem())
+            qp.drawEllipse(*l.get_coords())
 
-    def add(self, item):
-        self.list = [item]
+    def add(self, l):
+        self.list = l
 
     def change(self):
         self.update()
@@ -50,32 +50,27 @@ class Main(QMainWindow):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Space:
             def animation():
-                for i in range(1000):
-                    self.add(QGraphicsEllipseItem(g.__next__() + 250, 250, 100, 100))
+                while True:
+                    self.add([Circle(g.__next__() + 250, 250, 100, 100), Circle(250, g.__next__() + 250, 100, 100)])
                     yield self.change()
 
-            anime = animation()
+            anim= animation()
             @pyqtSlot()
             def step():
-                anime.__next__()
+                anim.__next__()
 
             self.timer = QTimer(self)
             self.timer.timeout.connect(step)
             for i in range(4):
                 self.timer.start(10)
 
-            # for i in range(3):
-            #     self.add(QGraphicsEllipseItem(g.__next__() + 250, 250, 100, 100))
-            #     self.change()
-            #     time.sleep(1)
-            # for i in range(3):
-            #     self.add(QGraphicsEllipseItem(250, g.__next__() + 250, 100, 100))
-            #     self.change()
-            #     time.sleep(1)
-            # for i in range(3):
-            #     self.add(QGraphicsEllipseItem(g.__next__() - 250, g.__next__() - 250, 100, 100))
-            #     self.change()
-            #     time.sleep(1)
+
+class Circle(QGraphicsEllipseItem):
+    def __init__(self, x, y, a, b):
+        super().__init__(x, y, a, b)
+        self.coords = [x, y, a, b]
+    def get_coords(self):
+        return self.coords
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

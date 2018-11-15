@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem, QGraphicsLineIt
 import random as rn
 import numpy as np
 import time
+import pybrain
 
 import organism as org
 from constants import *
@@ -30,6 +31,9 @@ class Main(QMainWindow):
         self.res_x = 400
         self.res_y = 300
         self.resource = Resource(self.res_x, self.res_y)
+        self.field_init()
+
+    def field_init(self):
         global All_Cells, All_Resources, All_Entities
         All_Cells = []
         All_Resources = [self.resource]
@@ -39,24 +43,35 @@ class Main(QMainWindow):
 
     def evolution(self):
         global All_Cells
-
+        self.step_count = 0
         def fitness_func(x, y): # расстояние до капустки
             return ((x-self.res_x)**2+(y-self.res_y)**2)**(0.5)
 
         # инициализация первого поколения
-        start_distance = 200
+        start_distance = 100
         amount = 15
         All_Cells = [Cell(np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y, 10) for i in range(amount)]
         self.change()
 
     def evolution_step(self):
         global All_Cells
+        if self.step_count >=100:
+            def fitness_func(cell):  # расстояние до капустки
+                return ((cell.x - self.res_x) ** 2 + (cell.y - self.res_y) ** 2) ** (0.5)
+            closeness = {cell: fitness_func(cell) for cell in All_Cells}
+            self.field_init()
+            print('reinitialized!')
+            return
         for cell in All_Cells:
             x, y, orient = cell.get_step()
             cell.move(x, y)
             cell.orient = orient
+        self.step_count +=1
         self.change()
 
+# 20 шагов
+# выбираются лучшие
+# репродуцируются
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Space:
             self.evolution_step()
@@ -69,9 +84,10 @@ class Main(QMainWindow):
         qp.setBrush(QColor(Qt.blue))
         self.resource.paint(qp, QStyleOptionGraphicsItem())
         for cell in All_Cells:
-            qp.setBrush(QColor(Qt.blue))
+            qp.setPen(QtGui.QPen(QtGui.QColor(255,0,0)))
             cell.paint(qp, QStyleOptionGraphicsItem())
-            pass
+            # qp.setPen(QColor(Qt.blue))
+            # qp.drawEllipse(*cell.get_coords())
 
     def change(self):
         self.update()
@@ -79,33 +95,28 @@ class Main(QMainWindow):
 
 
 class Cell(QGraphicsEllipseItem):
-    def __init__(self, x, y, r, w = None, b = None, orient = 0):
+    def __init__(self, x, y, r, orient=0, n=None):
         super().__init__(x, y, r, r)
-        if w is None:
-            w = []
-            for i in range(layers_count-1):
-                w.append(np.array([[rn.uniform(-1, 1) for k in range(neuron_layers[i])] for j in range(neuron_layers[i+1])]))
-        self.w = w
-        if b is None:
-            b = []
-            for i in range(layers_count-1):
-                b.append(np.array([rn.uniform(-1, 1) for k in range(neuron_layers[i+1])]))
-        self.b = b
+        self.brains = org.net_init()
+        self.coords = [x, y, r, r]
         self.x = x
         self.y = y
         self.r = r
         self.orient = orient
 
         self.color = Qt.blue
-        self.setBrush(QColor(self.color))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255)))
 
         self.vision_rays = [2*np.pi*(i+orient)/raze_amount for i in range(sector_size)]
-        self.ray_length = 20 # длина луча видимости
-        self.density = 0.5 # плотность просматриваемых точек на луче
+        self.ray_length = 20  # длина луча видимости
+        self.density = 0.5  # плотность просматриваемых точек на луче
 
-    def set_scales(w, b):
-        self.w = w
-        self.b = b
+    def get_coords(self):
+        return self.coords
+    #
+    # def set_scales(w, b):
+    #     self.w = w
+    #     self.b = b
 
     def get_step(self):
         x = self.x
@@ -137,12 +148,13 @@ class Cell(QGraphicsEllipseItem):
             if not seeing:
                 input_data.append(-1)
                 input_data.append(0)
-        return org.calc(input_data, self.w, self.b)
+        return self.brains.activate(input_data)
 
     def move(self, x, y):
         self.x += x
         self.y += y
-        super().__init__(self.x, self.y, self.r, self.r)
+        self.coords = [x, y, self.r, self.r]
+        self.__init__(self.x, self.y, self.r, self.r)
 
 
 class Resource(QGraphicsEllipseItem):

@@ -3,5 +3,7 @@ raze_amount = 8
 sector_size = 3
 
 # кол-во нейроннов в слоях
-neuron_layers = [2*sector_size, 4, 4, 3]
-layers_count = len(neuron_layers)
+inp_layer = 2*sector_size
+hidden_layers = [4, 4]
+hidden_layers_count = len(hidden_layers)
+out_layer = 3
