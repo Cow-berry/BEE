@@ -62,7 +62,7 @@ class Main(QMainWindow):
             self.timer = QTimer(self)
             self.timer.timeout.connect(step)
             for i in range(4):
-                self.timer.start(10)
+                self.timer.start(1)
 
 
 class Circle(QGraphicsEllipseItem):

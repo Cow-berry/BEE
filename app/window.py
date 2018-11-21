@@ -3,7 +3,7 @@ from PyQt5.Qt import QColor
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, qApp
 from PyQt5 import QtGui
 from PyQt5.QtGui import QPainter, QBrush, QPen
-from PyQt5.QtCore import Qt, QTimer,  QRectF, QRect, QEventLoop
+from PyQt5.QtCore import Qt, QTimer,  QRectF, QRect, QEventLoop, pyqtSlot
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem, QGraphicsLineItem, QStyleOptionGraphicsItem
 import random as rn
 import numpy as np
@@ -12,10 +12,11 @@ import pybrain
 
 import organism as org
 from constants import *
-
+import random
 
 class Main(QMainWindow):
     def __init__(self):
+        global All_Cells
         super().__init__()
         self.resize(800, 600)
         exitAct = QAction('&Exit', self)
@@ -31,11 +32,14 @@ class Main(QMainWindow):
         self.res_x = 400
         self.res_y = 300
         self.resource = Resource(self.res_x, self.res_y)
+
+        All_Cells = []
+        self.first = True
+
         self.field_init()
 
     def field_init(self):
-        global All_Cells, All_Resources, All_Entities
-        All_Cells = []
+        global All_Resources, All_Entities
         All_Resources = [self.resource]
         All_Entities = All_Cells + All_Resources
         self.evolution()
@@ -49,16 +53,27 @@ class Main(QMainWindow):
 
         # инициализация первого поколения
         start_distance = 100
-        amount = 15
-        All_Cells = [Cell(np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y, 10) for i in range(amount)]
+        amount = 20
+        if not(self.first):
+            def fitness_func(cell):  # расстояние до капустки
+                return ((cell.x - self.res_x) ** 2 + (cell.y - self.res_y) ** 2) ** (0.5)
+            closeness = {fitness_func(cell):cell for cell in All_Cells}
+            best = [closeness[i] for i in sorted(list(closeness.keys()))[-amount//2:]]
+            worst = [closeness[i] for i in sorted(list(closeness.keys()))[:-amount//2]]
+            [worst[i].brains._setParameters(list(best[i].brains.params)) for i in range(len(worst))]
+            [cell.mutate() for cell in worst]
+            All_Cells = best + worst
+            for i in range(amount):
+                All_Cells[i].x, All_Cells[i].y = (np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y)
+
+        else:
+            All_Cells = [Cell(np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y, 10) for i in range(amount)]
         self.change()
 
     def evolution_step(self):
         global All_Cells
-        if self.step_count >=100:
-            def fitness_func(cell):  # расстояние до капустки
-                return ((cell.x - self.res_x) ** 2 + (cell.y - self.res_y) ** 2) ** (0.5)
-            closeness = {cell: fitness_func(cell) for cell in All_Cells}
+        if self.step_count >=step_amount:
+            self.first = False
             self.field_init()
             print('reinitialized!')
             return
@@ -73,9 +88,16 @@ class Main(QMainWindow):
 # выбираются лучшие
 # репродуцируются
     def keyPressEvent(self, e):
-        if e.key() == Qt.Key_Space:
+        # if e.key() == Qt.Key_Space:
+        #     self.evolution_step()
+        @pyqtSlot()
+        def step():
             self.evolution_step()
 
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(step)
+        for i in range(100):
+            self.timer.start(10)
     def paintEvent(self, event):
         global All_Cells
         qp = QPainter(self)
@@ -84,7 +106,7 @@ class Main(QMainWindow):
         qp.setBrush(QColor(Qt.blue))
         self.resource.paint(qp, QStyleOptionGraphicsItem())
         for cell in All_Cells:
-            qp.setPen(QtGui.QPen(QtGui.QColor(255,0,0)))
+            qp.setBrush(cell.color)
             cell.paint(qp, QStyleOptionGraphicsItem())
             # qp.setPen(QColor(Qt.blue))
             # qp.drawEllipse(*cell.get_coords())
@@ -95,7 +117,7 @@ class Main(QMainWindow):
 
 
 class Cell(QGraphicsEllipseItem):
-    def __init__(self, x, y, r, orient=0, n=None):
+    def __init__(self, x, y, r, orient=0, n=None, color = None):
         super().__init__(x, y, r, r)
         self.brains = org.net_init()
         self.coords = [x, y, r, r]
@@ -103,13 +125,19 @@ class Cell(QGraphicsEllipseItem):
         self.y = y
         self.r = r
         self.orient = orient
+        if color is not None:
+            self.color = color
+        else:
+            self.color = random.choice([Qt.red, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray])
 
-        self.color = Qt.blue
-        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255)))
+        self.setBrush(self.color)
 
         self.vision_rays = [2*np.pi*(i+orient)/raze_amount for i in range(sector_size)]
         self.ray_length = 20  # длина луча видимости
         self.density = 0.5  # плотность просматриваемых точек на луче
+
+    def mutate(self):
+        self.brains._setParameters([i+random.uniform(0, mutation_rate) for i in list(self.brains.params)])
 
     def get_coords(self):
         return self.coords
@@ -154,12 +182,12 @@ class Cell(QGraphicsEllipseItem):
         self.x += x
         self.y += y
         self.coords = [x, y, self.r, self.r]
-        self.__init__(self.x, self.y, self.r, self.r)
+        self.__init__(self.x, self.y, self.r, self.r, color = self.color)
 
 
 class Resource(QGraphicsEllipseItem):
     def __init__(self, x, y, r=20):
-        super().__init__(x, y, r, r )
+        super().__init__(x, y, r, r)
         self.x = x
         self.y = y
         self.r = r
