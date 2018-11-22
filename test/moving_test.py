@@ -65,6 +65,7 @@ class Main(QMainWindow):
                 self.timer.start(1)
 
 
+
 class Circle(QGraphicsEllipseItem):
     def __init__(self, x, y, a, b):
         super().__init__(x, y, a, b)
