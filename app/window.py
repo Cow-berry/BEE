@@ -1,18 +1,22 @@
 import sys
-from PyQt5.Qt import QColor
+from PyQt5.Qt        import QColor
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, qApp
-from PyQt5 import QtGui
-from PyQt5.QtGui import QPainter, QBrush, QPen
-from PyQt5.QtCore import Qt, QTimer,  QRectF, QRect, QEventLoop, pyqtSlot
+from PyQt5           import QtGui
+from PyQt5.QtGui     import QPainter, QBrush, QPen
+from PyQt5.QtCore    import Qt, QTimer,  QRectF, QRect, QEventLoop, pyqtSlot
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem, QGraphicsLineItem, QStyleOptionGraphicsItem
 import random as rn
 import numpy as np
-import time
+import datetime
 import pybrain
+from pybrain.tools.customxml.networkwriter import NetworkWriter
+from pybrain.tools.customxml.networkreader import NetworkReader
+import random
+import os
 
 import organism as org
 from constants import *
-import random
+
 
 class Main(QMainWindow):
     def __init__(self):
@@ -65,6 +69,8 @@ class Main(QMainWindow):
             if self.gone > min(closeness):
                 self.gone = min(closeness)
                 print('generation %i\nprogress made = %i'%(self.evolution_counter, self.gone))
+            else:
+                print('generation of dovns %i'%(self.evolution_counter, self.gone))
             worst = [closeness[i] for i in sorted(list(closeness.keys()))[-amount//2:]]
             best = [closeness[i] for i in sorted(list(closeness.keys()))[:-amount//2]]
             [worst[i].brains._setParameters(list(best[i].brains.params)) for i in range(len(worst))]
@@ -101,8 +107,14 @@ class Main(QMainWindow):
 # выбираются лучшие
 # репродуцируются
     def keyPressEvent(self, e):
+        global All_Cells
         if e.key() == Qt.Key_Space:
             self.stop = not(self.stop)
+        elif e.key() == Qt.Key_W:
+            today = '%i%02i%02i%02i%02i%02i'%(datetime.datetime.today().year, datetime.datetime.today().month, datetime.datetime.today().day, datetime.datetime.today().hour, datetime.datetime.today().minute, datetime.datetime.today().second)
+            os.mkdir('../data/%s' % today)
+            for i in range(len(All_Cells)):
+                NetworkWriter.writeToFile(All_Cells[i].brains, '../data/%s/%02i.xml' % (today, i))
         elif not(self.timer_set):
             self.timer_set = True
             @pyqtSlot()

@@ -1,0 +1,6 @@
+numpy==1.15.4
+pkg-resources==0.0.0
+PyBrain==0.3
+PyQt5==5.11.3
+PyQt5-sip==4.19.13
+virtualenv==16.1.0
