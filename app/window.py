@@ -37,10 +37,15 @@ class Main(QMainWindow):
         self.res_y = 300
         self.resource = Resource(self.res_x, self.res_y, resource_radius)
 
+        def fitness_func(x, y):  # расстояние до капустки
+            return (x - self.res_x) ** 2 + (y - self.res_y) ** 2
+
         All_Cells = []
         self.first = True
         self.gone = start_distance
-        # добавить самое худшее значение и медианное. Рисовать их.
+        self.last_gone = start_distance
+
+        # TODO добавить самое худшее значение и медианное. Рисовать их.
 
         self.evolution_counter = 0
         self.stop = True
@@ -55,30 +60,32 @@ class Main(QMainWindow):
         self.evolution()
         self.change()
 
+
     def evolution(self):
         global All_Cells
         self.step_count = 0
-        def fitness_func(x, y): # расстояние до капустки
-            return ((x-self.res_x)**2+(y-self.res_y)**2)**(0.5)
-
         # инициализация первого поколения
         if not(self.first):
-            def fitness_func(cell):  # расстояние до капустки
-                return ((cell.x - self.res_x) ** 2 + (cell.y - self.res_y) ** 2) ** (0.5)
-            closeness = {fitness_func(cell):cell for cell in All_Cells}
+            def distance(x, y):  # расстояние
+                return ((x - self.res_x) ** 2 + (y - self.res_y) ** 2)**0.5
+
+            def fitness_func(x, y):  # функция приспособленности
+                return (x - self.res_x) ** 2 + (y - self.res_y) ** 2
+            closeness = {distance(cell.x, cell.y): cell for cell in All_Cells}
+            self.last_gone = min(closeness)
             if self.gone > min(closeness):
                 self.gone = min(closeness)
-                print('generation %i\nprogress made = %i'%(self.evolution_counter, self.gone))
+                print('%i: progress made = %i'%(self.evolution_counter, self.gone))
             else:
-                print('generation of dovns %i'%(self.evolution_counter, self.gone))
-            worst = [closeness[i] for i in sorted(list(closeness.keys()))[-amount//2:]]
-            best = [closeness[i] for i in sorted(list(closeness.keys()))[:-amount//2]]
-            [worst[i].brains._setParameters(list(best[i].brains.params)) for i in range(len(worst))]
-            [cell.mutate() for cell in worst]
-            [cell.change_color(Qt.green) for cell in best]
-            [cell.change_color(QtGui.QColor(255,128,0)) for cell in worst]
-            All_Cells = best + worst
-            random.shuffle(All_Cells)
+                print('%i: generation of dovns %i'%(self.evolution_counter, self.last_gone))
+
+            best = [closeness[i] for i in sorted(list(closeness.keys()))[:-amount // 2]]
+            random.shuffle(best)
+            pairs = [(best[2*i], (best[2*i+1])) for i in range(len(best)//2)]
+            All_Cells = []
+            for i in range(4):
+                All_Cells += [(pair[0].__add__(pair[1])).__copy__() for pair in pairs]
+            [cell.mutate() for cell in All_Cells]
             for i in range(amount):
                 All_Cells[i].x, All_Cells[i].y = (np.cos(2*np.pi*i/amount)*start_distance+self.res_x, np.sin(2*np.pi*i/amount)*start_distance+self.res_y)
 
@@ -94,7 +101,6 @@ class Main(QMainWindow):
             self.first = False
             self.evolution_counter += 1
             self.field_init()
-            print('reinitialized!')
             return
         for cell in All_Cells:
             x, y, orient = cell.get_step()
@@ -114,7 +120,7 @@ class Main(QMainWindow):
             today = '%i%02i%02i%02i%02i%02i'%(datetime.datetime.today().year, datetime.datetime.today().month, datetime.datetime.today().day, datetime.datetime.today().hour, datetime.datetime.today().minute, datetime.datetime.today().second)
             os.mkdir('../data/%s' % today)
             for i in range(len(All_Cells)):
-                NetworkWriter.writeToFile(All_Cells[i].brains, '../data/%s/%02i.xml' % (today, i))
+                NetworkWriter.writeToFile(All_Cells[i].brain, '../data/%s/%02i.xml' % (today, i))
         elif not(self.timer_set):
             self.timer_set = True
             @pyqtSlot()
@@ -147,9 +153,11 @@ class Circle(QGraphicsEllipseItem):
         super().__init__(x-r, y-r, 2*r, 2*r)
 
 class Cell(Circle):
-    def __init__(self, x, y, r, orient=0, n=None, color = None):
+    def __init__(self, x, y, r, orient=0, params = None, color = None):
         super().__init__(x, y, r)
-        self.brains = org.net_init()
+        self.brain = org.net_init()
+        if params is not None:
+            self.brain._setParameters(params)
         self.coords = [x, y, r, r]
         self.x = x
         self.y = y
@@ -162,36 +170,41 @@ class Cell(Circle):
 
         self.setBrush(self.color)
 
-        self.vision_rays = [2*np.pi*(i+orient)/raze_amount for i in range(sector_size)]
+        self.vision_rays = [2 * np.pi*(orient + (i / raze_amount)) for i in range(sector_size)]
         self.ray_length = 105  # длина луча видимости
-        self.density = 0.5  # плотность просматриваемых точек на луче
+        self.density = 2  # плотность просматриваемых точек на луче
+
+    def __add__(self, cell):
+        self.brain._setParameters([(self.brain.params[i] + cell.brain.params[i])/2 for i in range(len(self.brain.params))])
+        self.color = random.choice([self.color, cell.color])
+        return self
+
+    def __copy__(self):
+        return Cell(self.x,self.y, self.r, self.orient, self.brain.params, self.color)
 
     def mutate(self):
-        self.brains._setParameters([i+random.uniform(0, mutation_rate) for i in list(self.brains.params)])
+        self.brain._setParameters([i+random.uniform(-mutation_rate, mutation_rate) for i in list(self.brain.params)])
 
     def get_coords(self):
         return self.coords
-    #
-    # def set_scales(w, b):
-    #     self.w = w
-    #     self.b = b
+
 
     def get_step(self):
         x = self.x
         y = self.y
-        Cells_Close = [cell for cell in All_Cells if (x - cell.x)**2 + (y - cell.y)**2 <= self.ray_length**2] # клетки в радиусе видимости
-        Resource_Close = [resource for resource in All_Resources if (x - resource.x)**2 + (y - resource.y)**2 <= self.ray_length**2] # еда в радиусе видимости
-        Entities_Close = Cells_Close + Resource_Close
+
+        Cells_Close = [cell for cell in All_Cells if (x - cell.x)**2 + (y - cell.y)**2 <= self.ray_length**2 and (cell != self)]  # клетки в радиусе видимости
+        Resource_Close = [resource for resource in All_Resources if (x - resource.x)**2 + (y - resource.y)**2 <= self.ray_length**2]  # еда в радиусе видимости
+        Entities_Close = Resource_Close + Cells_Close
         input_data = []
         for angle in self.vision_rays:
             seeing = False
-            for i in range(int(self.ray_length//self.density)):
-                i_x = np.cos(angle)*i/self.ray_length
-                i_y = np.sin(angle)*i/self.ray_length
+            for i in range(self.ray_length*self.density):
+                i_x = x+np.cos(angle)*i/self.density
+                i_y = y+np.sin(angle)*i/self.density
                 for entity in Entities_Close:
                     if (i_x - entity.x)**2 + (i_y - entity.y)**2 <= entity.r**2:
-                        # input_data.append((i_x**2 + i_y**2)**0.5)
-                        input_data.append(1)
+                        input_data.append((i_x-x)**2 + (i_y - y)**2)
                         seeing = True
                         # TODO 'Завести матрицу отношений'
                         if isinstance(entity, Cell):
@@ -202,11 +215,12 @@ class Cell(Circle):
                             input_data.append(-1)
                         # Для прочих подклассов Cell (особей другого вида) будет делаться проверка типа и передаваться другое число, наверное
                         # TODO переработать структуру классов, определить отношения между видами особей и обобщить код на случай множества разных особей
-
+                if seeing:
+                    break
             if not seeing:
                 input_data.append(-1)
                 input_data.append(0)
-        return self.brains.activate(input_data)
+        return self.brain.activate(input_data)
 
     def change_color(self, color):
         self.color = color

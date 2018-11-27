@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<PyBrain>
+	<Network class="pybrain.structure.networks.feedforward.FeedForwardNetwork" name="FeedForwardNetwork-1192347">
+		<name val="'FeedForwardNetwork-1192347'"/>
+		<Modules>
+			<LinearLayer class="pybrain.structure.modules.linearlayer.LinearLayer" inmodule="True" name="LinearLayer-1192344">
+				<dim val="6"/>
+			</LinearLayer>
+			<LinearLayer class="pybrain.structure.modules.linearlayer.LinearLayer" name="LinearLayer-1192606" outmodule="True">
+				<dim val="3"/>
+			</LinearLayer>
+			<SigmoidLayer class="pybrain.structure.modules.sigmoidlayer.SigmoidLayer" name="SigmoidLayer-1192607">
+				<dim val="4"/>
+			</SigmoidLayer>
+		</Modules>
+		<Connections>
+			<FullConnection class="pybrain.structure.connections.full.FullConnection" name="FullConnection-1192346">
+				<inmod val="LinearLayer-1192344"/>
+				<outmod val="SigmoidLayer-1192607"/>
+				<Parameters>[0.18595420587117462, -1.2501296844965666, 1.0561853244253845, 1.3361316522564755, 1.726281815562512, -0.6445891823197972, -1.4999634472625076, -1.5044588936140713, -0.21987180553730493, 0.39698587850655653, -0.2371906727296061, -0.9752120493465863, 0.5064753692479355, -1.111916085388012, 0.6057821360997009, -1.0115797408807523, -0.036902406508361664, 0.23914464626029813, -1.0182815188380936, 0.3232910837371976, -1.4727942219635421, 0.8015471906398866, -1.6918179093676788, 0.13240594619306723]</Parameters>
+			</FullConnection>
+			<FullConnection class="pybrain.structure.connections.full.FullConnection" name="FullConnection-1192345">
+				<inmod val="SigmoidLayer-1192607"/>
+				<outmod val="LinearLayer-1192606"/>
+				<Parameters>[0.40541428664849394, -1.568991104558339, -1.3494405265350453, -0.9932425683696174, 1.315892910711813, 0.08903361425574777, 0.1799682652620788, -0.54635726131082, 0.05642163558764083, -1.3194602684295043, -1.0402760915135747, 0.7931299955502833]</Parameters>
+			</FullConnection>
+		</Connections>
+	</Network>
+</PyBrain>

@@ -24,6 +24,3 @@ def net_init (w = None, b = None):
     return n
 
 
-
-n = net_init()
-print(n.activate([1, 2, 3, 4, 5, 6]))
