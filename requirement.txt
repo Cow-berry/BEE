@@ -1,4 +1,4 @@
-numpy==1.15.4
+numpy==1.22.0
 pkg-resources==0.0.0
 PyBrain==0.3
 PyQt5==5.11.3
